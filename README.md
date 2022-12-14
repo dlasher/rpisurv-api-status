@@ -42,10 +42,10 @@ curl http://api-ip:5000/camera/status
 
 output is now JSON
 
-# curl -q http://api-ip:5000/camera/status
+#curl -q http://api-ip:5000/camera/status
 {"camera":"1","status":"resume"}
 
-# curl -q http://api-ip:5000/camera/status | jq
+#curl -q http://api-ip:5000/camera/status | jq
 {
   "camera": "1",
   "status": "resume"
