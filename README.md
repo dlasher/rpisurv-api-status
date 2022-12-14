@@ -7,7 +7,7 @@ Request :
 * pip3 install flask
 * pip3 install keyboard
 
-sudo nohup python3 rpisurv-api.py > log.txt 2>&1 &
+sudo nohup python3 rpisurv-api-status.py > log.txt 2>&1 &
 
 http call example:
 
