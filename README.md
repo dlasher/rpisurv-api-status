@@ -1,7 +1,7 @@
-# rpisurv-api-stuats
+# rpisurv-api-status
 API for rpisurv (https://github.com/SvenVD/rpisurv)
 
-Simple API to simulate keyboard press for changing screen
+Simple API to simulate keyboard press for changing screen, with changes to show status and output as JSON
 
 Request :
 * pip3 install flask
