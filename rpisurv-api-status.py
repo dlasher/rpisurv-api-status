@@ -1,138 +1,64 @@
-# Gruik coded by GuiguiAbloc
-import flask
-import time
+from flask import Flask, jsonify, request, abort
 import keyboard
-app = flask.Flask(__name__)
+import ipaddress
 
+app = Flask(__name__)
+
+ALLOWED_IPS = [ipaddress.ip_network('10.4.0.0/16')]
+
+@app.before_request
+def limit_remote_addr():
+    ip_addr = ipaddress.ip_address(request.remote_addr)
+    if ip_addr.version == 6 and ip_addr.ipv4_mapped is not None:
+        ip_addr = ip_addr.ipv4_mapped
+    if not any(ip_addr in net for net in ALLOWED_IPS):
+        abort(403)  # Forbidden
+
+def read_file(path):
+    try:
+        with open(path, 'r') as file:
+            return file.read().strip()
+    except IOError:
+        return None
+
+def write_file(path, content):
+    try:
+        with open(path, 'w') as file:
+            file.write(content)
+        return True
+    except IOError:
+        return False
 
 @app.route('/')
 def index():
-  return 'Server Works!'
+    return 'Server Works!'
 
-@app.route('/camera/pause')
-def campause():
-  try:
-      text_file = open("/tmp/rpi.status", "w")
-      text_file.write('pause')
-      text_file.close()
-      text_file = open("/tmp/rpi.camera", "r")
-      rcamera = text_file.read()
-      text_file.close()
-      keyboard.press_and_release('p')
-      return {
-          "status": "pause",
-          "camera": rcamera,
-      }
-  except:
-      print("Error")
-      return "Error"
+@app.route('/camera/<action>')
+def camera_action(action):
+    if action not in ['pause', 'resume', 'status', '1', '2', '3', '4']:
+        return jsonify(error='Invalid action'), 400
 
-@app.route('/camera/resume')
-def camresume():
-  try:
-      text_file = open("/tmp/rpi.status", "w")
-      text_file.write('resume')
-      text_file.close()
-      text_file = open("/tmp/rpi.camera", "r")
-      rcamera = text_file.read()
-      text_file.close()
-      keyboard.press_and_release('r')
-      return {
-          "status": "resume",
-          "camera": rcamera,
-      }
-  except:
-      print("Error")
-      return "Error"
+    if action in ['pause', 'resume']:
+        if not write_file("/tmp/rpi.status", action):
+            return jsonify(error='File write error'), 500
+        key = 'p' if action == 'pause' else 'r'
+    elif action in ['1', '2', '3', '4']:
+        if not write_file("/tmp/rpi.camera", action):
+            return jsonify(error='File write error'), 500
+        key = 'F' + action
+    else:
+        key = None
 
-@app.route('/camera/status')
-def camstatus():
-   try:
-      text_file = open("/tmp/rpi.status", "r")
-      rstatus = text_file.read()
-      text_file.close()
-      text_file = open("/tmp/rpi.camera", "r")
-      rcamera = text_file.read()
-      text_file.close()
-      return {
-          "status": rstatus,
-          "camera": rcamera
-      }
-   except:
-      print("Error")
-      return "Error"
+    if key:
+        keyboard.press_and_release(key)
 
-@app.route('/camera/1')
-def cam1():
-  try:
-      text_file = open("/tmp/rpi.status", "r")
-      rstatus = text_file.read()
-      text_file.close()
-      text_file = open("/tmp/rpi.camera", "w")
-      text_file.write('1')
-      text_file.close()
-      keyboard.press_and_release('F1')
-      return {
-          "status": rstatus,
-          "camera": "1",
-      }
-  except:
-      print("Error")
-      return "Error"
+    status = read_file("/tmp/rpi.status")
+    camera = read_file("/tmp/rpi.camera")
 
-@app.route('/camera/2')
-def cam2():
-  try:
-      text_file = open("/tmp/rpi.status", "r")
-      rstatus = text_file.read()
-      text_file.close()
-      text_file = open("/tmp/rpi.camera", "w")
-      text_file.write('2')
-      text_file.close()
-      keyboard.press_and_release('F2')
-      return {
-          "status": rstatus,
-          "camera": "2",
-      }
-  except:
-      print("Error")
-      return "Error"
+    if status is None or camera is None:
+        return jsonify(error='File read error'), 500
 
-@app.route('/camera/3')
-def cam3():
-  try:
-      text_file = open("/tmp/rpi.status", "r")
-      rstatus = text_file.read()
-      text_file.close()
-      text_file = open("/tmp/rpi.camera", "w")
-      text_file.write('3')
-      text_file.close()
-      keyboard.press_and_release('F3')
-      return {
-          "status": rstatus,
-          "camera": "3",
-      }
-  except:
-      print("Error")
-      return "Error"
-
-@app.route('/camera/4')
-def cam4():
-  try:
-      text_file = open("/tmp/rpi.status", "r")
-      rstatus = text_file.read()
-      text_file.close()
-      text_file = open("/tmp/rpi.camera", "w")
-      text_file.write('4')
-      text_file.close()
-      keyboard.press_and_release('F4')
-      return {
-          "status": rstatus,
-          "camera": "4",
-      }
-  except:
-      print("Error")
-      return "Error"
+    return jsonify(status=status, camera=camera)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
